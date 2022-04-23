@@ -5,7 +5,16 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.google.common.collect.ImmutableMap;
 
+//import sun.audio.*;
+import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
+
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
 
 /**
  * 接口封装
@@ -20,7 +29,7 @@ public class Api {
     public static String getAddressId() {
         boolean noAddress = false;
         try {
-            System.out.println("开始获取收货人信息");
+            Application.logger.info("开始获取收货人信息");
             HttpRequest httpRequest = HttpUtil.createGet("https://sunquan.api.ddxq.mobi/api/v1/user/address/");
             httpRequest.addHeaders(UserConfig.getHeaders());
             httpRequest.formStr(UserConfig.getBody());
@@ -30,19 +39,20 @@ public class Api {
             boolean success = object.getBool("success");
             if (!success) {
                 if ("您的访问已过期".equals(object.getStr("message"))) {
-                    System.err.println("用户信息失效，请确保UserConfig参数准确，并且微信上的叮咚小程序不能退出登录");
+                    Application.logger.error("用户信息失效，请确保UserConfig参数准确，并且微信上的叮咚小程序不能退出登录");
                     Application.map.put("end", new HashMap<>());
                     return null;
                 }
-                System.err.println("获取默认收货地址失败:" + JSONUtil.toJsonStr(object.getStr("msg")));
+                Application.logger.error("获取默认收货地址失败:" + JSONUtil.toJsonStr(object.getStr("msg")));
                 return null;
             }
             JSONArray validAddress = object.getJSONObject("data").getJSONArray("valid_address");
-            System.out.println("获取可用的收货地址条数：" + validAddress.size());
+            Application.logger.info("获取可用的收货地址条数：" + validAddress.size());
             for (int i = 0; i < validAddress.size(); i++) {
                 JSONObject address = validAddress.getJSONObject(i);
                 if (address.getBool("is_default")) {
-                    System.out.println("获取默认收货地址成功：" + address.getStr("addr_detail") + " 手机号：" + address.getStr("mobile"));
+                    Application.logger.info(
+                            "获取默认收货地址成功：" + address.getStr("addr_detail") + " 手机号：" + address.getStr("mobile"));
                     return address.getStr("id");
                 }
             }
@@ -51,12 +61,11 @@ public class Api {
             e.printStackTrace();
         }
         if (noAddress) {
-            System.err.println("没有可用的默认收货地址，请自行登录叮咚设置该站点可用的默认收货地址");
+            Application.logger.error("没有可用的默认收货地址，请自行登录叮咚设置该站点可用的默认收货地址");
             Application.map.put("end", new HashMap<>());
         }
         return null;
     }
-
 
     /**
      * 获取购物车信息
@@ -74,14 +83,19 @@ public class Api {
 
             String body = httpRequest.execute().body();
             JSONObject object = JSONUtil.parseObj(body);
-            boolean success = object.getBool("success");
+            boolean success ;
+            try{
+                success = object.getBool("success");
+            }catch(java.lang.NullPointerException e){
+                success=false;
+            }
             if (!success) {
                 if ("您的访问已过期".equals(object.getStr("message"))) {
-                    System.err.println("用户信息失效，请确保UserConfig参数准确，并且微信上的叮咚小程序不能退出登录");
+                    Application.logger.error("用户信息失效，请确保UserConfig参数准确，并且微信上的叮咚小程序不能退出登录");
                     Application.map.put("end", new HashMap<>());
                     return null;
                 }
-                System.err.println("更新购物车数据失败:" + JSONUtil.toJsonStr(object.getStr("msg")));
+                Application.logger.error("更新购物车数据失败:" + JSONUtil.toJsonStr(object.getStr("msg")));
                 return null;
             }
             JSONObject data = object.getJSONObject("data");
@@ -93,11 +107,16 @@ public class Api {
                 JSONArray products = newOrderProduct.getJSONArray("products");
 
                 Map<String, Object> map = new HashMap<>();
+                String product_namelist = "";
                 for (int i = 0; i < products.size(); i++) {
                     JSONObject product = products.getJSONObject(i);
                     product.set("total_money", product.get("total_price"));
                     product.set("total_origin_money", product.get("total_origin_price"));
+                    product_namelist = product_namelist + "," + product.get("product_name");
                 }
+            //    String s1=newOrderProduct.get("total_money").toString();
+            //    if(Double.parseDouble( s1) <45){ Application.logger.info("总价低于预设价格");}
+
                 map.put("products", products);
                 map.put("parent_order_sign", data.getJSONObject("parent_order_info").get("parent_order_sign"));
                 map.put("total_money", newOrderProduct.get("total_money"));
@@ -124,19 +143,23 @@ public class Api {
                 map.put("front_package_type", newOrderProduct.get("front_package_type"));
                 map.put("front_package_stock_color", newOrderProduct.get("front_package_stock_color"));
                 map.put("front_package_bg_color", newOrderProduct.get("front_package_bg_color"));
-                System.out.println("更新购物车数据成功");
+        
+                //PlayMusic();
+                Application.logger.info( "更新购物车数据成功" + "，数量=" + newOrderProduct.get("cart_count") + "，总价="
+                        + newOrderProduct.get("total_money") + product_namelist);
+        
+                httpRequest=null;
                 return map;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
         if (noProducts) {
-            System.err.println("购物车无可买的商品");
+            Application.logger.error("购物车无可买的商品");
             Application.map.put("end", new HashMap<>());
         }
         return null;
     }
-
 
     /**
      * 获取配送信息
@@ -158,24 +181,30 @@ public class Api {
             httpRequest.form(request);
             String body = httpRequest.execute().body();
             JSONObject object = JSONUtil.parseObj(body);
-            boolean success = object.getBool("success");
+            boolean success;
+            try{
+                success = object.getBool("success");
+            }catch(java.lang.NullPointerException e){
+                success=false;
+            }
             if (!success) {
                 if ("您的访问已过期".equals(object.getStr("message"))) {
-                    System.err.println("用户信息失效，请确保UserConfig参数准确，并且微信上的叮咚小程序不能退出登录");
+                    Application.logger.error("用户信息失效，请确保UserConfig参数准确，并且微信上的叮咚小程序不能退出登录");
                     Application.map.put("end", new HashMap<>());
                     return null;
                 }
-                System.err.println("更新配送时间失败:" + JSONUtil.toJsonStr(object.getStr("msg")));
+                Application.logger.error("更新配送时间失败:" + JSONUtil.toJsonStr(object.getStr("msg")));
                 return null;
             }
             Map<String, Object> map = new HashMap<>();
-            JSONArray times = object.getJSONArray("data").getJSONObject(0).getJSONArray("time").getJSONObject(0).getJSONArray("times");
+            JSONArray times = object.getJSONArray("data").getJSONObject(0).getJSONArray("time").getJSONObject(0)
+                    .getJSONArray("times");
             for (int i = 0; i < times.size(); i++) {
                 JSONObject time = times.getJSONObject(i);
                 if (time.getInt("disableType") == 0) {
                     map.put("reserved_time_start", time.get("start_timestamp"));
                     map.put("reserved_time_end", time.get("end_timestamp"));
-                    System.out.println("更新配送时间成功");
+                    Application.logger.info("更新配送时间成功");
                     return map;
                 }
             }
@@ -184,9 +213,9 @@ public class Api {
             e.printStackTrace();
         }
         if (noReserveTime) {
-            System.err.println("无可选的配送时间");
+            Application.logger.error("无可选的配送时间");
             Application.map.remove("multiReserveTimeMap");
-            //此处不停止程序 可在开放之前提前执行
+            // 此处不停止程序 可在开放之前提前执行
         }
         return null;
     }
@@ -199,7 +228,8 @@ public class Api {
      * @param multiReserveTimeMap 配送信息
      * @return 订单确认信息
      */
-    public static Map<String, Object> getCheckOrder(String addressId, Map<String, Object> cartMap, Map<String, Object> multiReserveTimeMap) {
+    public static Map<String, Object> getCheckOrder(String addressId, Map<String, Object> cartMap,
+            Map<String, Object> multiReserveTimeMap) {
         try {
             HttpRequest httpRequest = HttpUtil.createPost("https://maicai.api.ddxq.mobi/order/checkOrder");
             httpRequest.addHeaders(UserConfig.getHeaders());
@@ -246,22 +276,27 @@ public class Api {
             packagesMap.put("front_package_bg_color", cartMap.get("front_package_bg_color"));
 
             packagesMap.put("reserved_time", ImmutableMap.of(
-                    "reserved_time_start", multiReserveTimeMap.get("reserved_time_start"), "reserved_time_end", multiReserveTimeMap.get("reserved_time_end")
-            ));
+                    "reserved_time_start", multiReserveTimeMap.get("reserved_time_start"), "reserved_time_end",
+                    multiReserveTimeMap.get("reserved_time_end")));
             packages.add(packagesMap);
             request.put("packages", JSONUtil.toJsonStr(packages));
             httpRequest.form(request);
 
             String body = httpRequest.execute().body();
             JSONObject object = JSONUtil.parseObj(body);
-            boolean success = object.getBool("success");
+            boolean success;
+            try{
+                success = object.getBool("success");
+            }catch(java.lang.NullPointerException e){
+                success=false;
+            }
             if (!success) {
                 if ("您的访问已过期".equals(object.getStr("message"))) {
-                    System.err.println("用户信息失效，请确保UserConfig参数准确，并且微信上的叮咚小程序不能退出登录");
+                    Application.logger.error("用户信息失效，请确保UserConfig参数准确，并且微信上的叮咚小程序不能退出登录");
                     Application.map.put("end", new HashMap<>());
                     return null;
                 }
-                System.err.println("更新订单确认信息失败:" + JSONUtil.toJsonStr(object.getStr("msg")));
+                Application.logger.error("更新订单确认信息失败:" + JSONUtil.toJsonStr(object.getStr("msg")));
                 return null;
             }
 
@@ -271,9 +306,10 @@ public class Api {
             map.put("freight_discount_money", order.get("freight_discount_money"));
             map.put("freight_money", order.get("freight_money"));
             map.put("total_money", order.get("total_money"));
-            map.put("freight_real_money", order.getJSONArray("freights").getJSONObject(0).getJSONObject("freight").get("freight_real_money"));
+            map.put("freight_real_money",
+                    order.getJSONArray("freights").getJSONObject(0).getJSONObject("freight").get("freight_real_money"));
             map.put("user_ticket_id", order.getJSONObject("default_coupon").get("_id"));
-            System.out.println("更新订单确认信息成功");
+            Application.logger.info("更新订单确认信息成功");
             return map;
         } catch (Exception e) {
             e.printStackTrace();
@@ -289,7 +325,8 @@ public class Api {
      * @param multiReserveTimeMap 配送信息
      * @param checkOrderMap       订单确认信息
      */
-    public static void addNewOrder(String addressId, Map<String, Object> cartMap, Map<String, Object> multiReserveTimeMap, Map<String, Object> checkOrderMap) {
+    public static void addNewOrder(String addressId, Map<String, Object> cartMap,
+            Map<String, Object> multiReserveTimeMap, Map<String, Object> checkOrderMap) {
         boolean submitSuccess = false;
         String totalMoney = cartMap.get("total_money") != null ? (String) cartMap.get("total_money") : "";
         try {
@@ -357,14 +394,19 @@ public class Api {
             httpRequest.form(request);
             String body = httpRequest.execute().body();
             JSONObject object = JSONUtil.parseObj(body);
-            boolean success = object.getBool("success");
+            boolean success;
+            try{
+                success = object.getBool("success");
+            }catch(java.lang.NullPointerException e){
+                success=false;
+            }
             if (!success) {
                 if ("您的访问已过期".equals(object.getStr("message"))) {
-                    System.err.println("用户信息失效，请确保UserConfig参数准确，并且微信上的叮咚小程序不能退出登录");
+                    Application.logger.error("用户信息失效，请确保UserConfig参数准确，并且微信上的叮咚小程序不能退出登录");
                     Application.map.put("end", new HashMap<>());
                     return;
                 }
-                System.err.println("提交订单失败,当前下单总金额：" + totalMoney + " 返回：" + JSONUtil.toJsonStr(object.getStr("msg")));
+                Application.logger.error("提交订单失败,当前下单总金额：" + totalMoney + " 返回：" + JSONUtil.toJsonStr(object.getStr("msg")));
                 return;
             }
             submitSuccess = object.getJSONObject("data").getStr("pay_url").length() > 0;
@@ -373,10 +415,37 @@ public class Api {
         }
         if (submitSuccess) {
             for (int i = 0; i < 10; i++) {
-                System.out.println("恭喜你，已成功下单 当前下单总金额：" + totalMoney);
+                SimpleDateFormat formatter = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss:SSS");
+                String formatStr =formatter.format(new Date());
+                Application.logger.info(formatStr + " 恭喜你，已成功下单 当前下单总金额：" + totalMoney);
+                PlayMusic();
             }
             Application.map.put("end", new HashMap<>());
         }
+    }
+
+    /**
+     * 播放成功音乐
+     */
+    public static void PlayMusic() {
+        try {
+            // Open an audio input stream.
+            File f = new File("Alarm04.wav");
+            //InputStream is =Api.class.getResourceAsStream("Alarm04.wav");
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(f.toURI().toURL());
+            // Get a sound clip resource.
+            Clip clip = AudioSystem.getClip();
+            // Open audio clip and load samples from the audio input stream.
+            clip.open(audioIn);
+            clip.start();
+         } catch (UnsupportedAudioFileException e) {
+            e.printStackTrace();
+         } catch (IOException e) {
+            e.printStackTrace();
+         } catch (LineUnavailableException e) {
+            e.printStackTrace();
+         }
+        
     }
 
 }

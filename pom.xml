@@ -6,8 +6,23 @@
     <artifactId>dingdong-helper</artifactId>
     <version>1.0.0</version>
     <modelVersion>4.0.0</modelVersion>
+    
 
     <dependencies>
+
+      <dependency>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-api</artifactId>
+          <version>2.17.2</version>
+      </dependency>
+
+
+      <dependency>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-core</artifactId>
+          <version>2.17.2</version>
+      </dependency>
+
 
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -26,7 +41,8 @@
             <artifactId>hutool-all</artifactId>
             <version>5.7.1</version>
         </dependency>
-    </dependencies>
+        
+  </dependencies>
 
     <build>
         <resources>
@@ -40,7 +56,10 @@
             <!--指定资源的位置（xml放在resources下，可以不用指定）-->
             <resource>
                 <directory>src/main/resources</directory>
-                <filtering>true</filtering>
+                <includes>
+                    <include>**/*.*</include>
+                </includes>
+                
             </resource>
         </resources>
 
@@ -62,6 +81,21 @@
                     <skipTests>true</skipTests>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <mainClass>Application</mainClass> <!-- 此处为主入口-->
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 </project>

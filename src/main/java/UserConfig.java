@@ -8,7 +8,7 @@ import java.util.Map;
 public class UserConfig {
 
     //收货地址id
-    public static final String addressId = "";
+    public static final String addressId = "5e4347c52956c67a61d3aa21";
 
     /**
      * 提前获取收货地址id 填写到addressId上 规则为该站点可送达的默认收货地址  如果没有请自行去APP中设置好再运行
@@ -24,19 +24,19 @@ public class UserConfig {
      */
     public static Map<String, String> getHeaders() {
         Map<String, String> headers = new HashMap<>();
-        headers.put("ddmc-city-number", "");
-        headers.put("ddmc-build-version", "");
-        headers.put("ddmc-device-id", "");
-        headers.put("ddmc-station-id", "");
+        headers.put("ddmc-city-number", "0101");
+        headers.put("ddmc-build-version", "2.82.0");
+        headers.put("ddmc-device-id", "osP8I0cgv5aemgvIES8YbaBdeRTE");
+        headers.put("ddmc-station-id", "5dc2a0f626c3d171698b456c");
         headers.put("ddmc-channel", "applet");
         headers.put("ddmc-os-version", "[object Undefined]");
         headers.put("ddmc-app-client-id", "4");
-        headers.put("cookie", "");
+        headers.put("cookie", "DDXQSESSID=d75bfba6b810024ecbe5f8ec6c0c8e26");
         headers.put("ddmc-ip", "");
-        headers.put("ddmc-longitude", "");
-        headers.put("ddmc-latitude", "");
-        headers.put("ddmc-api-version", "");
-        headers.put("ddmc-uid", "");
+        headers.put("ddmc-longitude", "31.151237");
+        headers.put("ddmc-latitude", "121.398265");
+        headers.put("ddmc-api-version", "9.49.2");
+        headers.put("ddmc-uid", "5e3d8d0d0e707349008e2004");
         headers.put("user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 15_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.18(0x1800123c) NetType/WIFI Language/zh_CN");
         headers.put("referer", "https://servicewechat.com/wx1e113254eda17715/422/page-frame.html");
         return headers;
@@ -49,20 +49,20 @@ public class UserConfig {
      */
     public static Map getBody() {
         Map body = new HashMap<>();
-        body.put("uid", "");
-        body.put("longitude", "");
-        body.put("latitude", "");
-        body.put("station_id", "");
-        body.put("city_number", "");
-        body.put("api_version", "");
-        body.put("app_version", "");
+        body.put("uid", "5e3d8d0d0e707349008e2004");
+        body.put("longitude", "121.398265");
+        body.put("latitude", "31.151237");
+        body.put("station_id", "5dc2a0f626c3d171698b456c");
+        body.put("city_number", "0101");
+        body.put("api_version", "9.49.2");
+        body.put("app_version", "2.82.0");
         body.put("applet_source", "");
         body.put("channel", "applet");
         body.put("app_client_id", "4");
         body.put("sharer_uid", "");
-        body.put("openid", "");
+        body.put("openid", "osP8I0cgv5aemgvIES8YbaBdeRTE");
         body.put("h5_source", "");
-        body.put("device_token", "");
+        body.put("device_token", "WHJMrwNw1k/FKPjcOOgRd+A/u6bx57E4BvpTzMDyjmXuma0SjlQstPnhXTUuX7qrr3UvaJH5cjKDmZsx873ZLYf9+OpmctDyXdCW1tldyDzmauSxIJm5Txg==1487582755342");
         return body;
     }
 
